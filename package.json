@@ -1,7 +1,7 @@
 {
-  "name": "@sgnl/job-template",
+  "name": "@sgnl-actions/okta-assign-user-to-group",
   "version": "1.0.0",
-  "description": "Template for SGNL JavaScript jobs",
+  "description": "Assign an Okta user to a group",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
