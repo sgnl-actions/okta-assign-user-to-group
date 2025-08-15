@@ -1,130 +1,199 @@
 import script from '../src/script.mjs';
 
-describe('Job Template Script', () => {
+describe('Okta Assign User to Group Script', () => {
   const mockContext = {
     env: {
       ENVIRONMENT: 'test'
     },
     secrets: {
-      API_KEY: 'test-api-key-123456'
+      OKTA_API_TOKEN: 'test-okta-token-123456'
     },
-    outputs: {},
-    partial_results: {},
-    current_step: 'start'
+    outputs: {}
   };
 
+  let originalFetch;
+  let originalURL;
+  let fetchMock;
+
+  beforeAll(() => {
+    // Save original global functions
+    originalFetch = global.fetch;
+    originalURL = global.URL;
+  });
+
+  beforeEach(() => {
+    // Create a fresh mock for each test
+    fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      json: async () => ({})
+    });
+    
+    // Set up global mocks
+    global.fetch = fetchMock;
+    global.URL = originalURL || class {
+      constructor(path, base) {
+        this.href = base ? `${base.replace(/\/$/, '')}${path}` : path;
+      }
+      toString() {
+        return this.href;
+      }
+    };
+    
+    // Mock console to avoid noise in tests
+    global.console.log = jest.fn();
+    global.console.error = jest.fn();
+  });
+
+  afterAll(() => {
+    // Restore original global functions
+    global.fetch = originalFetch;
+    global.URL = originalURL;
+  });
+
   describe('invoke handler', () => {
-    test('should execute successfully with minimal params', async () => {
+    test('should successfully assign user to group', async () => {
       const params = {
-        target: 'test-user@example.com',
-        action: 'create'
+        userId: 'user123',
+        groupId: 'group456',
+        oktaDomain: 'test.okta.com'
       };
 
       const result = await script.invoke(params, mockContext);
 
-      expect(result.status).toBe('success');
-      expect(result.target).toBe('test-user@example.com');
-      expect(result.action).toBe('create');
-      expect(result.status).toBeDefined();
-      expect(result.processed_at).toBeDefined();
-      expect(result.options_processed).toBe(0);
+      expect(result.userId).toBe('user123');
+      expect(result.groupId).toBe('group456');
+      expect(result.assigned).toBe(true);
+      expect(result.oktaDomain).toBe('test.okta.com');
+      expect(result.assignedAt).toBeDefined();
+      
+      // Verify the API was called correctly
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, options] = fetchMock.mock.calls[0];
+      expect(url.toString()).toContain('/api/v1/groups/group456/users/user123');
+      expect(options.method).toBe('PUT');
+      expect(options.headers.Authorization).toContain('SSWS');
     });
 
-    test('should handle dry run mode', async () => {
+    test('should throw error for missing userId', async () => {
       const params = {
-        target: 'test-user@example.com',
-        action: 'delete',
-        dry_run: true
+        groupId: 'group456',
+        oktaDomain: 'test.okta.com'
       };
 
-      const result = await script.invoke(params, mockContext);
-
-      expect(result.status).toBe('dry_run_completed');
-      expect(result.target).toBe('test-user@example.com');
-      expect(result.action).toBe('delete');
+      await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing userId parameter');
     });
 
-    test('should process options array', async () => {
+    test('should throw error for missing groupId', async () => {
       const params = {
-        target: 'test-group',
-        action: 'update',
-        options: ['force', 'notify', 'audit']
+        userId: 'user123',
+        oktaDomain: 'test.okta.com'
       };
 
-      const result = await script.invoke(params, mockContext);
-
-      expect(result.status).toBe('success');
-      expect(result.target).toBe('test-group');
-      expect(result.options_processed).toBe(3);
+      await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing groupId parameter');
     });
 
-    test('should handle context with previous job outputs', async () => {
-      const contextWithOutputs = {
+    test('should throw error for missing oktaDomain', async () => {
+      const params = {
+        userId: 'user123',
+        groupId: 'group456'
+      };
+
+      await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing oktaDomain parameter');
+    });
+
+    test('should throw error for missing API token', async () => {
+      const params = {
+        userId: 'user123',
+        groupId: 'group456',
+        oktaDomain: 'test.okta.com'
+      };
+      
+      const contextNoToken = {
         ...mockContext,
-        outputs: {
-          'create-user': {
-            user_id: '12345',
-            created_at: '2024-01-15T10:30:00Z'
-          },
-          'assign-groups': {
-            groups_assigned: 3
-          }
-        }
+        secrets: {}
       };
+
+      await expect(script.invoke(params, contextNoToken)).rejects.toThrow('Missing required secret: OKTA_API_TOKEN');
+    });
+
+    test('should handle API error response', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          errorCode: 'E0000014',
+          errorSummary: 'The user is already a member of this group'
+        })
+      });
 
       const params = {
-        target: 'user-12345',
-        action: 'finalize'
+        userId: 'user123',
+        groupId: 'group456',
+        oktaDomain: 'test.okta.com'
       };
 
-      const result = await script.invoke(params, contextWithOutputs);
+      await expect(script.invoke(params, mockContext)).rejects.toThrow('The user is already a member of this group');
+    });
 
-      expect(result.status).toBe('success');
-      expect(result.target).toBe('user-12345');
-      expect(result.status).toBeDefined();
+    test('should handle rate limit error specially', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: async () => ({
+          errorCode: 'E0000047',
+          errorSummary: 'API rate limit exceeded'
+        })
+      });
+
+      const params = {
+        userId: 'user123',
+        groupId: 'group456',
+        oktaDomain: 'test.okta.com'
+      };
+
+      await expect(script.invoke(params, mockContext)).rejects.toThrow('API rate limit exceeded');
     });
   });
 
   describe('error handler', () => {
-    test('should throw error by default', async () => {
+    test('should retry on rate limit error', async () => {
       const params = {
-        target: 'test-user@example.com',
-        action: 'create',
-        error: {
-          message: 'Something went wrong',
-          code: 'ERROR_CODE'
-        }
+        error: new Error('API rate limit exceeded')
       };
 
-      await expect(script.error(params, mockContext)).rejects.toThrow('Unable to recover from error: Something went wrong');
+      // Mock successful retry
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 204
+      });
+
+      const result = await script.error(params, {
+        ...mockContext,
+        params: {
+          userId: 'user123',
+          groupId: 'group456',
+          oktaDomain: 'test.okta.com'
+        }
+      });
+
+      expect(result.recovered).toBe(true);
+    });
+
+    test('should throw for non-retryable errors', async () => {
+      const params = {
+        error: new Error('Invalid credentials')
+      };
+
+      await expect(script.error(params, mockContext)).rejects.toThrow('Invalid credentials');
     });
   });
 
   describe('halt handler', () => {
-    test('should handle graceful shutdown', async () => {
-      const params = {
-        target: 'test-user@example.com',
-        reason: 'timeout'
-      };
-
-      const result = await script.halt(params, mockContext);
-
+    test('should return halted status', async () => {
+      const result = await script.halt({}, mockContext);
       expect(result.status).toBe('halted');
-      expect(result.target).toBe('test-user@example.com');
-      expect(result.reason).toBe('timeout');
-      expect(result.halted_at).toBeDefined();
-    });
-
-    test('should handle halt without target', async () => {
-      const params = {
-        reason: 'system_shutdown'
-      };
-
-      const result = await script.halt(params, mockContext);
-
-      expect(result.status).toBe('halted');
-      expect(result.target).toBe('unknown');
-      expect(result.reason).toBe('system_shutdown');
+      expect(result.message).toBe('Job execution was halted');
     });
   });
 });
