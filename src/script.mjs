@@ -38,6 +38,7 @@ export default {
    * @param {string} params.groupId - The Okta group ID
    * @param {string} params.oktaDomain - The Okta domain (e.g., example.okta.com)
    * @param {Object} context - Execution context with env, secrets, outputs
+   * @param {string} context.secrets.BEARER_AUTH_TOKEN - Bearer token for Okta API authentication
    * @returns {Object} Job results
    */
   invoke: async (params, context) => {
@@ -57,8 +58,8 @@ export default {
     }
 
     // Validate Okta API token is present
-    if (!context.secrets?.OKTA_API_TOKEN) {
-      throw new Error('Missing required secret: OKTA_API_TOKEN');
+    if (!context.secrets?.BEARER_AUTH_TOKEN) {
+      throw new Error('Missing required secret: BEARER_AUTH_TOKEN');
     }
 
     // Make the API request to assign user to group
@@ -66,7 +67,7 @@ export default {
       userId,
       groupId,
       oktaDomain,
-      context.secrets.OKTA_API_TOKEN
+      context.secrets.BEARER_AUTH_TOKEN
     );
 
     // Handle the response

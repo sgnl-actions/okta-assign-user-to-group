@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import script from '../src/script.mjs';
 
 describe('Okta Assign User to Group Script', () => {
@@ -6,7 +7,7 @@ describe('Okta Assign User to Group Script', () => {
       ENVIRONMENT: 'test'
     },
     secrets: {
-      OKTA_API_TOKEN: 'test-okta-token-123456'
+      BEARER_AUTH_TOKEN: 'test-okta-token-123456'
     },
     outputs: {}
   };
@@ -114,7 +115,7 @@ describe('Okta Assign User to Group Script', () => {
         secrets: {}
       };
 
-      await expect(script.invoke(params, contextNoToken)).rejects.toThrow('Missing required secret: OKTA_API_TOKEN');
+      await expect(script.invoke(params, contextNoToken)).rejects.toThrow('Missing required secret: BEARER_AUTH_TOKEN');
     });
 
     test('should handle API error response', async () => {
