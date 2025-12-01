@@ -57,7 +57,7 @@ describe('Okta Assign User to Group Script', () => {
       const params = {
         userId: 'user123',
         groupId: 'group456',
-        oktaDomain: 'test.okta.com'
+        address: 'https://test.okta.com'
       };
 
       const result = await script.invoke(params, mockContext);
@@ -65,7 +65,7 @@ describe('Okta Assign User to Group Script', () => {
       expect(result.userId).toBe('user123');
       expect(result.groupId).toBe('group456');
       expect(result.assigned).toBe(true);
-      expect(result.oktaDomain).toBe('test.okta.com');
+      expect(result.address).toBe('https://test.okta.com');
       expect(result.assignedAt).toBeDefined();
       
       // Verify the API was called correctly
@@ -79,7 +79,7 @@ describe('Okta Assign User to Group Script', () => {
     test('should throw error for missing userId', async () => {
       const params = {
         groupId: 'group456',
-        oktaDomain: 'test.okta.com'
+        address: 'https://test.okta.com'
       };
 
       await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing userId parameter');
@@ -88,34 +88,34 @@ describe('Okta Assign User to Group Script', () => {
     test('should throw error for missing groupId', async () => {
       const params = {
         userId: 'user123',
-        oktaDomain: 'test.okta.com'
+        address: 'https://test.okta.com'
       };
 
       await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing groupId parameter');
     });
 
-    test('should throw error for missing oktaDomain', async () => {
+    test('should throw error for missing address', async () => {
       const params = {
         userId: 'user123',
         groupId: 'group456'
       };
 
-      await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing oktaDomain parameter');
+      await expect(script.invoke(params, mockContext)).rejects.toThrow('No URL specified. Provide address parameter or ADDRESS environment variable');
     });
 
     test('should throw error for missing API token', async () => {
       const params = {
         userId: 'user123',
         groupId: 'group456',
-        oktaDomain: 'test.okta.com'
+        address: 'https://test.okta.com'
       };
-      
+
       const contextNoToken = {
         ...mockContext,
         secrets: {}
       };
 
-      await expect(script.invoke(params, contextNoToken)).rejects.toThrow('Missing required secret: BEARER_AUTH_TOKEN');
+      await expect(script.invoke(params, contextNoToken)).rejects.toThrow('No authentication configured');
     });
 
     test('should handle API error response', async () => {
@@ -131,7 +131,7 @@ describe('Okta Assign User to Group Script', () => {
       const params = {
         userId: 'user123',
         groupId: 'group456',
-        oktaDomain: 'test.okta.com'
+        address: 'https://test.okta.com'
       };
 
       await expect(script.invoke(params, mockContext)).rejects.toThrow('The user is already a member of this group');
@@ -150,7 +150,7 @@ describe('Okta Assign User to Group Script', () => {
       const params = {
         userId: 'user123',
         groupId: 'group456',
-        oktaDomain: 'test.okta.com'
+        address: 'https://test.okta.com'
       };
 
       await expect(script.invoke(params, mockContext)).rejects.toThrow('API rate limit exceeded');
@@ -158,27 +158,12 @@ describe('Okta Assign User to Group Script', () => {
   });
 
   describe('error handler', () => {
-    test('should retry on rate limit error', async () => {
+    test('should throw on rate limit error', async () => {
       const params = {
         error: new Error('API rate limit exceeded')
       };
 
-      // Mock successful retry
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        status: 204
-      });
-
-      const result = await script.error(params, {
-        ...mockContext,
-        params: {
-          userId: 'user123',
-          groupId: 'group456',
-          oktaDomain: 'test.okta.com'
-        }
-      });
-
-      expect(result.recovered).toBe(true);
+      await expect(script.error(params, mockContext)).rejects.toThrow('API rate limit exceeded');
     });
 
     test('should throw for non-retryable errors', async () => {
@@ -193,8 +178,10 @@ describe('Okta Assign User to Group Script', () => {
   describe('halt handler', () => {
     test('should return halted status', async () => {
       const result = await script.halt({}, mockContext);
-      expect(result.status).toBe('halted');
-      expect(result.message).toBe('Job execution was halted');
+      expect(result.userId).toBe('unknown');
+      expect(result.groupId).toBe('unknown');
+      expect(result.cleanupCompleted).toBe(true);
+      expect(result.haltedAt).toBeDefined();
     });
   });
 });
