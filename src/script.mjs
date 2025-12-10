@@ -5,7 +5,7 @@
  * associated with that group membership.
  */
 
-import { getBaseUrl, getAuthorizationHeader } from '@sgnl-actions/utils';
+import { getBaseURL, getAuthorizationHeader, resolveJSONPathTemplates} from '@sgnl-actions/utils';
 
 /**
  * Helper function to perform user group assignment
@@ -60,7 +60,15 @@ export default {
    * @returns {Object} Job results
    */
   invoke: async (params, context) => {
-    const { userId, groupId } = params;
+    const jobContext = context.data || {};
+
+    // Resolve JSONPath templates in params
+    const { result: resolvedParams, errors } = resolveJSONPathTemplates(params, jobContext);
+    if (errors.length > 0) {
+      throw new Error(`Failed to resolve template values: ${errors.join(', ')}`);
+    }
+
+    const { userId, groupId } = resolvedParams;
 
     console.log(`Starting Okta user group assignment: user ${userId} to group ${groupId}`);
 
@@ -73,7 +81,7 @@ export default {
     }
 
     // Get base URL using utility function
-    const baseUrl = getBaseUrl(params, context);
+    const baseUrl = getBaseURL(resolvedParams, context);
 
     // Get authorization header
     let authHeader = await getAuthorizationHeader(context);
