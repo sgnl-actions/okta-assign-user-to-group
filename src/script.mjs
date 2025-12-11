@@ -38,6 +38,7 @@ export default {
    * @param {Object} params - Job input parameters
    * @param {string} params.userId - The Okta user ID
    * @param {string} params.groupId - The Okta group ID
+   * @param {string} params.address - Full URL to Okta API (defaults to ADDRESS environment variable)
    *
    * @param {Object} context - Execution context with secrets and environment
    * @param {string} context.environment.ADDRESS - Okta API base URL
@@ -71,14 +72,6 @@ export default {
     const { userId, groupId } = resolvedParams;
 
     console.log(`Starting Okta user group assignment: user ${userId} to group ${groupId}`);
-
-    // Validate inputs
-    if (!userId || typeof userId !== 'string') {
-      throw new Error('Invalid or missing userId parameter');
-    }
-    if (!groupId || typeof groupId !== 'string') {
-      throw new Error('Invalid or missing groupId parameter');
-    }
 
     // Get base URL using utility function
     const baseUrl = getBaseURL(resolvedParams, context);
