@@ -48,7 +48,7 @@ This action supports four authentication methods. Configure one of the following
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `ADDRESS` | Okta API base URL | `https://dev-12345.okta.com` |
+| `ADDRESS` | Default Okta API base URL | `https://dev-12345.okta.com` |
 
 ### Input Parameters
 
@@ -56,6 +56,7 @@ This action supports four authentication methods. Configure one of the following
 |-----------|------|----------|-------------|---------|
 | `userId` | string | Yes | The Okta user ID | `00u1234567890abcdef` |
 | `groupId` | string | Yes | The Okta group ID | `00g9876543210fedcba` |
+| `address` | string | No | Optional Okta API base URL override | `https://dev-12345.okta.com` |
 
 ### Output Structure
 
