@@ -38,6 +38,7 @@ export default {
    * @param {Object} params - Job input parameters
    * @param {string} params.userId - The Okta user ID
    * @param {string} params.groupId - The Okta group ID
+   * @param {string} params.address - Full URL to Okta API (defaults to ADDRESS environment variable)
    *
    * @param {Object} context - Execution context with secrets and environment
    * @param {string} context.environment.ADDRESS - Okta API base URL
