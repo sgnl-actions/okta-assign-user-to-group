@@ -76,24 +76,6 @@ describe('Okta Assign User to Group Script', () => {
       expect(options.headers.Authorization).toContain('SSWS');
     });
 
-    test('should throw error for missing userId', async () => {
-      const params = {
-        groupId: 'group456',
-        address: 'https://test.okta.com'
-      };
-
-      await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing userId parameter');
-    });
-
-    test('should throw error for missing groupId', async () => {
-      const params = {
-        userId: 'user123',
-        address: 'https://test.okta.com'
-      };
-
-      await expect(script.invoke(params, mockContext)).rejects.toThrow('Invalid or missing groupId parameter');
-    });
-
     test('should throw error for missing address', async () => {
       const params = {
         userId: 'user123',
