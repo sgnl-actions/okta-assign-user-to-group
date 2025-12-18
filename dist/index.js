@@ -476,6 +476,7 @@ var script = {
    * @param {Object} params - Job input parameters
    * @param {string} params.userId - The Okta user ID
    * @param {string} params.groupId - The Okta group ID
+   * @param {string} params.address - Full URL to Okta API (defaults to ADDRESS environment variable)
    *
    * @param {Object} context - Execution context with secrets and environment
    * @param {string} context.environment.ADDRESS - Okta API base URL
@@ -510,22 +511,14 @@ var script = {
 
     console.log(`Starting Okta user group assignment: user ${userId} to group ${groupId}`);
 
-    // Validate inputs
-    if (!userId || typeof userId !== 'string') {
-      throw new Error('Invalid or missing userId parameter');
-    }
-    if (!groupId || typeof groupId !== 'string') {
-      throw new Error('Invalid or missing groupId parameter');
-    }
-
     // Get base URL using utility function
     const baseUrl = getBaseURL(resolvedParams, context);
 
     // Get authorization header
     let authHeader = await getAuthorizationHeader(context);
 
-    // Handle Okta's SSWS token format for Bearer auth mode
-    if (authHeader.startsWith('Bearer ')) {
+    // Handle Okta's SSWS token format - only for Bearer token auth mode
+    if (context.secrets.BEARER_AUTH_TOKEN && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       authHeader = token.startsWith('SSWS ') ? token : `SSWS ${token}`;
     }
