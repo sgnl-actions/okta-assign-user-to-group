@@ -30,7 +30,7 @@ describe('Okta Assign User to Group Script', () => {
       status: 204,
       json: async () => ({})
     });
-    
+
     // Set up global mocks
     global.fetch = fetchMock;
     global.URL = originalURL || class {
@@ -41,7 +41,7 @@ describe('Okta Assign User to Group Script', () => {
         return this.href;
       }
     };
-    
+
     // Mock console to avoid noise in tests
     global.console.log = jest.fn();
     global.console.error = jest.fn();
@@ -68,7 +68,7 @@ describe('Okta Assign User to Group Script', () => {
       expect(result.assigned).toBe(true);
       expect(result.address).toBe('https://test.okta.com');
       expect(result.assignedAt).toBeDefined();
-      
+
       // Verify the API was called correctly
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, options] = fetchMock.mock.calls[0];
