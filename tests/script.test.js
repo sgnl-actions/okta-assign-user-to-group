@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import script from '../src/script.mjs';
+import { SGNL_USER_AGENT } from '@sgnl-actions/utils';
 
 describe('Okta Assign User to Group Script', () => {
   const mockContext = {
@@ -74,7 +75,7 @@ describe('Okta Assign User to Group Script', () => {
       expect(url.toString()).toContain('/api/v1/groups/group456/users/user123');
       expect(options.method).toBe('PUT');
       expect(options.headers.Authorization).toContain('SSWS');
-      expect(options.headers['User-Agent']).toBe('SGNL-CAEP-Hub/2.0');
+      expect(options.headers['User-Agent']).toBe(SGNL_USER_AGENT);
     });
 
     test('should throw error for missing address', async () => {
