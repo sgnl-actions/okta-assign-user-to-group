@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/sgnl-actions/schemas/main/metadata.schema.json
 name: okta-assign-user-to-group
 description: Assign an Okta user to a group for access management
 
