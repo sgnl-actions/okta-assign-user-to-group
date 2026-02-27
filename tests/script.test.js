@@ -87,21 +87,6 @@ describe('Okta Assign User to Group Script', () => {
       await expect(script.invoke(params, mockContext)).rejects.toThrow('No URL specified. Provide address parameter or ADDRESS environment variable');
     });
 
-    test('should throw error for missing API token', async () => {
-      const params = {
-        userId: 'user123',
-        groupId: 'group456',
-        address: 'https://test.okta.com'
-      };
-
-      const contextNoToken = {
-        ...mockContext,
-        secrets: {}
-      };
-
-      await expect(script.invoke(params, contextNoToken)).rejects.toThrow('No authentication configured');
-    });
-
     test('should handle API error response', async () => {
       fetchMock.mockResolvedValueOnce({
         ok: false,

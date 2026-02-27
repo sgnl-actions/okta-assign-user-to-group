@@ -5,7 +5,7 @@
  * associated with that group membership.
  */
 
-import { getBaseURL, createAuthHeaders } from '@sgnl-actions/utils';
+import { getBaseURL, createHeaders } from '@sgnl-actions/utils';
 
 /**
  * Helper function to perform user group assignment
@@ -65,7 +65,7 @@ export default {
     const baseUrl = getBaseURL(params, context);
 
     // Get headers using utility function
-    let headers = await createAuthHeaders(context);
+    let headers = await createHeaders(context);
 
     // Handle Okta's SSWS token format - only for Bearer token auth mode
     if (context.secrets.BEARER_AUTH_TOKEN && headers['Authorization'].startsWith('Bearer ')) {
